@@ -1,0 +1,7 @@
+步驟:
+
+1. 雙擊 01-YoutubePlayingList下載器-By AK.exe
+
+2. 貼上你要下載的 youtube 播放清單
+
+3. 輸入你下載後的檔案存放的資料夾要叫什麼名字
