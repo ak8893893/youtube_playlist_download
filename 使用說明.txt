@@ -1,0 +1,5 @@
+步驟:
+
+1. 雙擊 01-YoutubePlayingList下載器-By AK.exe
+
+2. 貼上你要下載的 youtube 播放清單 權限必須為 public(公開) 的播放清單
