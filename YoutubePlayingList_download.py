@@ -22,6 +22,6 @@ for video in videolist:
     yt.streams.filter(subtype='mp4', res='720p', progressive=True).first().download(pathdir)
     count+=1
     print(yt.title + " 下載完成 ")
-    print("-----------------總下載進度" + str(count) + "/" + str(len(videolist)) +"---------------------")
+    print("-----------------總下載進度" + str(count) + "/" + str(len(videolist)) + "---------------------")
 
 exit_progress = input("下載程序執行完成   按下 enter 離開")
