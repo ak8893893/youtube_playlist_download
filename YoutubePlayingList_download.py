@@ -23,3 +23,5 @@ for video in videolist:
     count+=1
     print(yt.title + " 下載完成 ")
     print("-----------------總下載進度" + str(count) + "/" + str(len(videolist)) +"---------------------")
+
+exit_progress = input("下載程序執行完成   按下 enter 離開")
