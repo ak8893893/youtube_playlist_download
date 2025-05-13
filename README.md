@@ -11,6 +11,7 @@ A versatile YouTube downloader that uses yt-dlp to download videos or music from
 3. [Features](#features)
 4. [Configuration](#configuration)
 5. [Examples](#examples)
+6. [Build](#build)
 
 ## Installation
 
@@ -133,3 +134,24 @@ pip install -U yt-dlp pytube
 ## Note
 
 Please use this tool responsibly and respect copyright laws. This downloader should only be used for content you have permission to download or that falls under fair use.
+
+## Build
+
+If you want build a .exe file for windows, please follow the steps
+
+1. Install all packages
+```bash
+pip install -r requirements.txt
+```
+
+2. Install pyinstaller 
+```bash
+pip install pyinstaller
+```
+
+3. Use pyinstaller to build the single exe file
+```bash
+pyinstaller -F main.py
+```
+
+4. The file will be at the dist folder. e.g. `main.exe`
