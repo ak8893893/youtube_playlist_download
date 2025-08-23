@@ -1,7 +1,9 @@
 步驟:
 
-1. 雙擊 01-YoutubePlayingList下載器-By AK.exe
+1. 雙擊 main.exe
 
 2. 貼上你要下載的 youtube 播放清單 權限必須為 public(公開) 的播放清單
 
 3. 輸入 1 下載音樂 輸入 2 下載影片
+
+4. 下載完的檔案會存在和 main.exe 同樣資料夾路徑下的 downloads 資料夾下
