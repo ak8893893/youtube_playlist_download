@@ -1,35 +1,52 @@
 import yt_dlp
 
-
-def download_youtube_playlist(playlist_url, download_type='audio', output_path=None):
+def download_youtube_playlist(playlist_url, download_type='audio', output_path=None, start_from = 0):
     """
-    下載YouTube播放清單中的所有影片
-
-    參數:
-        playlist_url (str): YouTube播放清單的URL
-        download_type (str): 'audio'僅下載音訊, 'video'下載影片
-        output_path (str, optional): 輸出路徑
-
-    返回:
-        bool: 下載是否成功
+    下載YouTube播放清單中的所有影片/音訊（盡量以最高畫質/音質抓取）
     """
     try:
-        # 基本選項
+        # 基本與通用選項
         ydl_opts = {
-            'ignoreerrors': True,  # 跳過錯誤的影片繼續下載其他
+            'ignoreerrors': True,               # 單支影片失敗不影響整清單
             'nocheckcertificate': True,
-            'noplaylist': False,  # 必須為False才能下載整個播放清單
+            # 'noplaylist': False,                # 下載整個播放清單
+            'continuedl': True,                 # 斷點續傳
+            'retries': 10,                      # 網路/HTTP 重試
+            'fragment_retries': 10,
+            'concurrent_fragment_downloads': 5, # 分段並行下載（提升速率）
+            'trim_file_name': 240,              # 避免檔名過長
+            # 'restrictfilenames': True,          # 檔名只用安全字元（特別是 Windows）
+            # 'windowsfilenames': True,
+            # 'writethumbnail': False,            # 需要縮圖時可設 True
+            'cookiefile': 'cookies.txt',        # 載入手動匯出的cookies
         }
 
-        # 輸出路徑和檔名格式設定
-        if output_path:
-            # 播放清單格式化: 資料夾名稱為播放清單標題, 檔案名包含編號和標題
-            ydl_opts['outtmpl'] = f'{output_path}/%(playlist)s/%(playlist_index)s-%(title)s.%(ext)s'
-        else:
-            ydl_opts['outtmpl'] = '%(playlist)s/%(playlist_index)s-%(title)s.%(ext)s'
+        # 判斷是不是播放清單
+        is_playlist = "list=" in playlist_url and "watch?v=" not in playlist_url
 
-        # 根據下載類型設定不同選項
+        if is_playlist:
+            ydl_opts['noplaylist'] = False  # 下載整個播放清單
+            if start_from > 0:
+                ydl_opts['playliststart'] = start_from
+        else:
+            ydl_opts['noplaylist'] = True   # 單一影片只下載該影片
+
+        if start_from !=0:
+            ydl_opts.update({
+                'playliststart': start_from
+            })
+
+        # 檔名模板
+        if output_path:
+            if is_playlist:
+                ydl_opts['outtmpl'] = f'{output_path}/%(playlist)s/%(playlist_index)s-%(title)s.%(ext)s'
+            else:
+                ydl_opts['outtmpl'] = f'{output_path}/%(title)s.%(ext)s'
+        else:
+            ydl_opts['outtmpl'] = '%(title)s.%(ext)s'
+
         if download_type.lower() == 'audio':
+            # 僅音訊：抓 bestaudio，轉成 mp3（避免 re-encode 可改存原格式：移除 postprocessors）
             ydl_opts.update({
                 'format': 'bestaudio/best',
                 'postprocessors': [{
@@ -38,45 +55,59 @@ def download_youtube_playlist(playlist_url, download_type='audio', output_path=N
                     'preferredquality': '192',
                 }],
             })
-        else:  # 視頻模式
+        else:
+            # 影片：明確選「最佳影片軌 + 最佳音訊軌」，限制在 4320p / 60fps 以內（避免誤選更高規格）
+            # 備援：若無分離軌，退而求其次抓單一 best
             ydl_opts.update({
-                'format': 'best',  # 最佳品質的視頻+音訊
+                'format': (
+                    'bestvideo[height<=?4320][fps<=?60]+bestaudio/'
+                    'best[height<=?4320][fps<=?60]'
+                ),
+                'merge_output_format': 'mkv',
+
+                # 正確的排序寫法
+                'format_sort': [
+                    'height:desc',  # 高解析度優先
+                    'fps:desc',  # 高幀率優先
+                    'vcodec:av01',  # 偏好 AV1（可依需求改）
+                    'vcodec:vp9',
+                    'vcodec:h264',
+                    'acodec:opus',
+                    'filesize:desc'  # 檔案大小大優先（通常代表品質好）
+                ],
+                'format_sort_force': True,  # 強制依照這個排序
             })
 
-        # 執行下載
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # 先獲取播放清單資訊
-            info_dict = ydl.extract_info(playlist_url, download=False)
+            info = ydl.extract_info(playlist_url, download=False)
+            if 'entries' in info:  # 播放清單
+                title = info.get('title', 'Unknown Playlist')
+                videos = [e for e in info['entries'] if e]
+                print(f"開始下載播放清單: {title}, 共 {len(videos)} 個影片")
+            else:  # 單一影片
+                title = info.get('title', 'Unknown Video')
+                print(f"開始下載單一影片: {title}")
 
-            if 'entries' in info_dict:
-                # 顯示播放清單資訊
-                playlist_title = info_dict.get('title', 'Unknown Playlist')
-                video_count = len(info_dict['entries'])
-                print(f"開始下載播放清單: {playlist_title}")
-                print(f"共有 {video_count} 個影片需要下載")
-
-                # 執行實際下載
-                ydl.download([playlist_url])
-
-                print(f"播放清單 '{playlist_title}' 下載完成！")
-                return True
-            else:
-                print("無法獲取播放清單資訊")
-                return False
+            ydl.download([playlist_url])
+            print("下載完成！")
+            return True
 
     except Exception as e:
         print(f"下載失敗: {e}")
         return False
 
 
-# 使用範例
 if __name__ == "__main__":
-    # 請替換為您想下載的YouTube播放清單URL
-    playlist_url = "https://www.youtube.com/playlist?list=PLjJlRS13Ym5R1k_X8lFA1SKpxZPwXcjfw"
+    # 1. 播放清單
+    # playlist_url = "https://www.youtube.com/playlist?list=PLjJlRS13Ym5R1k_X8lFA1SKpxZPwXcjfw"
+    # 2. 單一影片
+    playlist_url = "https://www.youtube.com/watch?v=6e82HzMK_qI&t=5s"
 
-    # 下載整個播放清單的音訊
+    start_from = 0
+
     download_youtube_playlist(
         playlist_url=playlist_url,
-        download_type='video',  # 使用'audio'下載MP3, 使用'video'下載影片
-        output_path="downloads"
+        download_type='video',   # 'audio' 下載 MP3；'video' 下載最高畫質影片
+        output_path="downloads",
+        start_from = start_from
     )

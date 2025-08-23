@@ -18,11 +18,14 @@ if __name__ == '__main__':
     else:
         download_type = 'video'
 
+    start_from = int(input('要從第幾個開始下載？(如果之前下載到一半有中斷可以跳過已下載完成的檔案)，如果要從第 11 個影片開始載請輸入 11，若沒有要跳過請輸入0: '))
+
     # 下載整個播放清單的音訊
     download_youtube_playlist(
         playlist_url = playlist_url,
         download_type = download_type,  # 使用'audio'下載MP3, 使用'video'下載影片
-        output_path = downloadPath
+        output_path = downloadPath,
+        start_from = start_from
     )
 
     print(f'下載完成 已將下載資料放到 {downloadPath} 資料夾中')
